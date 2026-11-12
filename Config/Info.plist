@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleLocalizations</key><array><string>en</string></array>
+    <key>CFBundleName</key><string>Tauross</string>
+    <key>CFBundleDisplayName</key><string>Tauross</string>
+    <key>CFBundleIdentifier</key><string>com.tauross.mac</string>
+    <key>CFBundleExecutable</key><string>Tauross</string>
+    <key>CFBundleIconFile</key><string>Resources/Tauross.icns</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>1.0.0</string>
+    <key>CFBundleVersion</key><string>1.0.0</string>
+    <key>TaurossUpdatesEnabled</key><true/>
+    <key>SUFeedURL</key><string>https://github.com/Duy-Company/tauross/releases/latest/download/appcast.xml</string>
+    <key>SUPublicEDKey</key><string>MvVMwaNPpKwfNKLcHPs0mwDSQNb1F834eLU3jyVxxAo=</string>
+    <key>SUEnableAutomaticChecks</key><true/>
+    <key>SUScheduledCheckInterval</key><integer>86400</integer>
+    <key>SUAutomaticallyUpdate</key><false/>
+    <key>SUAllowsAutomaticUpdates</key><false/>
+    <key>SUEnableSystemProfiling</key><false/>
+    <key>SUVerifyUpdateBeforeExtraction</key><true/>
+    <key>SURequireSignedFeed</key><true/>
+    <key>SUSignedFeedFailureExpirationInterval</key><integer>0</integer>
+    <key>LSMinimumSystemVersion</key><string>14.0</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSCameraUsageDescription</key><string>Tauross needs access to video capture sources to mirror an iPhone or iPad connected over USB.</string>
+    <key>NSLocalNetworkUsageDescription</key><string>Tauross connects to Android devices using ADB on your Wi-Fi network.</string>
+    <key>NSCameraUseContinuityCameraDeviceType</key><false/>
+    <key>NSPrincipalClass</key><string>NSApplication</string>
+</dict></plist>
