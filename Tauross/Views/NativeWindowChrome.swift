@@ -6,6 +6,8 @@ struct NativeWindowChrome: NSViewRepresentable {
     func updateNSView(_ nsView: ChromeView, context: Context) {}
 
     static func configure(_ window: NSWindow) {
+        window.tabbingMode = .disallowed
+        window.isExcludedFromWindowsMenu = false
         window.styleMask.insert([.titled, .closable, .miniaturizable, .resizable])
         window.titleVisibility = .visible
         window.titlebarAppearsTransparent = false

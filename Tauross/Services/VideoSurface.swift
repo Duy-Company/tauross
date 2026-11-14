@@ -1,5 +1,13 @@
 import AVFoundation
 import VideoToolbox
+import QuartzCore
+
+struct VideoFrame {
+    let image: CVPixelBuffer
+    let sequence: Int
+    let publishedAt: CFTimeInterval
+    let sourceTime: Double?
+}
 
 /// A one-frame mailbox: slow rendering drops decoded frames, never queues video latency.
 final class VideoSurface: @unchecked Sendable {
@@ -10,19 +18,26 @@ final class VideoSurface: @unchecked Sendable {
     private var byteCount = 0
     private var size = CGSize(width: 9, height: 19.5)
     private var started = Date()
+    private var publishedAt = CACurrentMediaTime()
+    private var sourceTime: Double?
 
-    func publish(_ image: CVPixelBuffer) {
+    func publish(_ image: CVPixelBuffer, sourceTime: Double? = nil) {
         lock.lock(); defer { lock.unlock() }
         latest = image
         sequence += 1
         frameCount += 1
+        publishedAt = CACurrentMediaTime()
+        self.sourceTime = sourceTime
         size = CGSize(width: CVPixelBufferGetWidth(image), height: CVPixelBufferGetHeight(image))
     }
     func addBytes(_ count: Int) { lock.lock(); byteCount += count; lock.unlock() }
     func frame(after previous: Int) -> (CVPixelBuffer, Int)? {
+        snapshot(after: previous).map { ($0.image, $0.sequence) }
+    }
+    func snapshot(after previous: Int) -> VideoFrame? {
         lock.lock(); defer { lock.unlock() }
         guard sequence != previous, let latest else { return nil }
-        return (latest, sequence)
+        return VideoFrame(image: latest, sequence: sequence, publishedAt: publishedAt, sourceTime: sourceTime)
     }
     func metrics() -> (CGSize, Int, Double, Double) {
         lock.lock(); defer { lock.unlock() }
@@ -32,6 +47,7 @@ final class VideoSurface: @unchecked Sendable {
     func reset() {
         lock.lock(); defer { lock.unlock() }
         latest = nil; sequence += 1; frameCount = 0; byteCount = 0; started = Date()
+        sourceTime = nil
         size = CGSize(width: 9, height: 19.5)
     }
 }
@@ -96,7 +112,7 @@ final class H264Decoder {
             sampleSizeEntryCount: 1, sampleSizeArray: &size, sampleBufferOut: &sample)
         guard status == noErr, let sample else { throw TaurossError.message("Unable to create a video sample.") }
         status = VTDecompressionSessionDecodeFrame(session, sampleBuffer: sample, flags: [], infoFlagsOut: nil) { [surface] status, _, image, _, _ in
-            if status == noErr, let image { surface.publish(image) }
+            if status == noErr, let image { surface.publish(image, sourceTime: Double(pts) / 1_000_000) }
         }
         guard status == noErr else { throw TaurossError.message("H.264 decoding failed (\(status)).") }
     }

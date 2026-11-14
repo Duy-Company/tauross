@@ -27,7 +27,7 @@ struct ContentView: View {
                                     .padding(.horizontal, 8).padding(.vertical, 10)
                             }
                             ForEach(devices) { device in
-                                Button { model.selectedID = device.id } label: { deviceRow(device) }
+                                Button { model.select(device) } label: { deviceRow(device) }
                                     .buttonStyle(.plain)
                                     .accessibilityAddTraits(model.selectedID == device.id ? .isSelected : [])
                             }
@@ -36,6 +36,8 @@ struct ContentView: View {
                 }.padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 16)
             }
             .background(Moss.background)
+
+            CaptureNotice(notice: model.notice, url: model.lastCapture) { model.notice = nil }.padding(.horizontal, 16)
 
             Divider().overlay(Moss.border)
             HStack {
@@ -50,7 +52,7 @@ struct ContentView: View {
             }.padding(.horizontal, 20).padding(.vertical, 14)
         }
         .background(Moss.background).foregroundStyle(Moss.text).tint(Moss.accent)
-        .alert("Unable to Connect", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
+        .alert("Tauross", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
             Button("OK", role: .cancel) { model.error = nil }
         } message: { Text(model.error ?? "") }
     }
@@ -68,8 +70,8 @@ struct ContentView: View {
                     .foregroundStyle(isSelected ? Moss.selectionDetail : Moss.muted)
             }
             Spacer()
-            if model.activeDevice?.id == device.id {
-                Text("Mirroring").font(.system(size: 10, weight: .medium))
+            if let session = model.sessions[device.id] {
+                Text(session.isConnecting ? "Connecting" : "Mirroring").font(.system(size: 10, weight: .medium))
                     .foregroundStyle(Moss.accent)
             } else {
                 Circle().fill(device.isReady ? Moss.accent : .orange).frame(width: 6, height: 6)

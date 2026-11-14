@@ -40,12 +40,11 @@ struct StreamOptions: Equatable {
     var bitRate = 8
     var control = true
     var stayAwake = true
-    var showTouches = false
 
     var serverArguments: [String] {
         ["video_codec=h264", "audio=false", "max_size=\(maxSize)", "max_fps=\(maxFPS)",
          "video_bit_rate=\(bitRate * 1_000_000)", "control=\(control)", "stay_awake=\(stayAwake)",
-         "show_touches=\(showTouches)", "clipboard_autosync=false", "tunnel_forward=true", "log_level=info"]
+         "show_touches=false", "clipboard_autosync=false", "tunnel_forward=true", "log_level=info"]
     }
 }
 

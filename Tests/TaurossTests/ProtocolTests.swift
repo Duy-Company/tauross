@@ -58,5 +58,6 @@ final class ProtocolTests: XCTestCase {
         XCTAssertTrue(args.contains("audio=false"))
         XCTAssertTrue(args.contains("clipboard_autosync=false"))
         XCTAssertTrue(args.contains("video_bit_rate=8000000"))
+        XCTAssertTrue(args.contains("show_touches=false"))
     }
 }

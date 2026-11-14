@@ -22,3 +22,28 @@ struct MossButton: ButtonStyle {
             .opacity(!isEnabled ? 0.4 : (configuration.isPressed ? 0.75 : 1))
     }
 }
+
+struct CaptureNotice: View {
+    let notice: String?
+    let url: URL?
+    let dismiss: () -> Void
+
+    var body: some View {
+        if let notice, let url {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(Moss.accent)
+                Text(notice).font(.system(size: 11)).foregroundStyle(Moss.text).lineLimit(2)
+                Spacer(minLength: 0)
+                Button { NSWorkspace.shared.activateFileViewerSelecting([url]) } label: {
+                    Image(systemName: "folder")
+                }.help("Show in Finder").accessibilityLabel("Show in Finder")
+                Button(action: dismiss) { Image(systemName: "xmark") }
+                    .help("Dismiss").accessibilityLabel("Dismiss")
+            }
+            .buttonStyle(.plain)
+            .padding(10)
+            .background(Moss.panel, in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Moss.border, lineWidth: 1))
+        }
+    }
+}

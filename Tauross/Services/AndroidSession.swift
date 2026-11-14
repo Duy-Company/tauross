@@ -60,6 +60,7 @@ final class AndroidSession: @unchecked Sendable {
     private var video: StreamSocket?
     private var control: StreamSocket?
     private let inputQueue = DispatchQueue(label: "com.tauross.input")
+    private let completion = DispatchGroup()
     private var log = ""
     private let surface: VideoSurface
     private let onFailure: @Sendable (String) -> Void
@@ -69,9 +70,14 @@ final class AndroidSession: @unchecked Sendable {
     }
     private var isStopped: Bool { lock.lock(); defer { lock.unlock() }; return stopped }
     private func check() throws { if isStopped { throw CancellationError() } }
-    func start(device: MirrorDevice, options: StreamOptions) {
+    func start(device: MirrorDevice, options: StreamOptions, afterStopping previous: AndroidSession? = nil) {
+        completion.enter()
+        previous?.stop()
         DispatchQueue(label: "com.tauross.android", qos: .userInteractive).async { [self] in
-            do { try stream(device: device, options: options) }
+            defer { completion.leave() }
+            // Reconfigure a shared capture without briefly running two device encoders.
+            previous?.completion.wait()
+            do { try check(); try stream(device: device, options: options) }
             catch {
                 if !isStopped {
                     lock.lock(); let details = log; lock.unlock()

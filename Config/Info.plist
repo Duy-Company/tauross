@@ -9,8 +9,8 @@
     <key>CFBundleExecutable</key><string>Tauross</string>
     <key>CFBundleIconFile</key><string>Resources/Tauross.icns</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.0.0</string>
-    <key>CFBundleVersion</key><string>1.0.0</string>
+    <key>CFBundleShortVersionString</key><string>1.0.1</string>
+    <key>CFBundleVersion</key><string>1.0.1</string>
     <key>TaurossUpdatesEnabled</key><true/>
     <key>SUFeedURL</key><string>https://github.com/Duy-Company/tauross/releases/latest/download/appcast.xml</string>
     <key>SUPublicEDKey</key><string>MvVMwaNPpKwfNKLcHPs0mwDSQNb1F834eLU3jyVxxAo=</string>

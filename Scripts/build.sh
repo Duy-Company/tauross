@@ -15,6 +15,11 @@ test -f "$framework/Versions/B/Sparkle"
 # Xcode strips headers on embed; reseal the framework, preserving signed helpers inside it.
 codesign --force --sign - --timestamp=none "$framework"
 codesign --verify --deep --strict "$framework"
+# Xcode's Debug builds may embed Tauross.debug.dylib and __preview.dylib.
+# With CODE_SIGNING_ALLOWED=NO these must be signed before the enclosing app.
+for library in "$app"/Contents/MacOS/*.dylib(N); do
+  codesign --force --sign - --timestamp=none "$library"
+done
 codesign --force --sign - --timestamp=none "$app"
 codesign --verify --deep --strict "$app"
 echo "Built: $PWD/$app"
