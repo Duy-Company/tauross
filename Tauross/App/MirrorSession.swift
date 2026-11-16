@@ -77,7 +77,7 @@ final class MirrorSession: ObservableObject, Identifiable {
             }
             if device.platform == .android {
                 androidCaptureOptions = activeOptions
-                let capture = AndroidSession(surface: surface, onFailure: failure)
+                let capture = AndroidSession(surface: surface, onClipboard: clipboardReceiver(for: token), onFailure: failure)
                 android = capture; capture.start(device: device, options: activeOptions)
             } else {
                 let capture = IOSCaptureService(surface: surface)
@@ -131,6 +131,18 @@ final class MirrorSession: ObservableObject, Identifiable {
     func rotateDevice() { if canControl { android?.send(Data([11])) } }
     func input(_ data: Data) { if canControl { android?.send(data) } }
 
+    private func clipboardReceiver(for token: UUID) -> @Sendable (String) -> Void {
+        { [weak self] text in
+            Task { @MainActor in
+                guard let self, self.generation == token, self.hasSession, self.activeOptions.control else { return }
+                let pasteboard = NSPasteboard.general
+                guard pasteboard.string(forType: .string) != text else { return }
+                pasteboard.clearContents()
+                pasteboard.setString(text, forType: .string)
+            }
+        }
+    }
+
     func fail(_ message: String) {
         if let owner { owner.sessionFailed(self, message: message) }
         else { stop() }
@@ -160,7 +172,7 @@ final class MirrorSession: ObservableObject, Identifiable {
             captureStarter(self, options)
             return
         }
-        let session = AndroidSession(surface: surface) { [weak self] message in
+        let session = AndroidSession(surface: surface, onClipboard: clipboardReceiver(for: token)) { [weak self] message in
             Task { @MainActor in
                 guard let self, self.generation == token else { return }
                 if self.hasRecording, options != self.activeOptions {
@@ -227,7 +239,7 @@ final class MirrorSession: ObservableObject, Identifiable {
                 self.isFinishingRecording = false
                 switch result {
                 case .success(let url):
-                    if let url { self.savedCapture(url, notice: "Recording saved to ~/.tauross/recordings.") }
+                    if let url { self.savedCapture(url, notice: "Recording saved to \((url.deletingLastPathComponent().path as NSString).abbreviatingWithTildeInPath).") }
                 case .failure(let error): self.reportError(error.localizedDescription)
                 }
                 if self.generation == sessionToken, self.activeDevice?.platform == .android,
@@ -252,7 +264,7 @@ final class MirrorSession: ObservableObject, Identifiable {
         do {
             let url = try captureDestination("screenshots", platform, "png")
             try data.write(to: url, options: .atomic)
-            savedCapture(url, notice: "Screenshot saved to ~/.tauross/screenshots.")
+            savedCapture(url, notice: "Screenshot saved to \((url.deletingLastPathComponent().path as NSString).abbreviatingWithTildeInPath).")
         } catch { reportError(error.localizedDescription) }
     }
 }

@@ -44,7 +44,7 @@ struct StreamOptions: Equatable {
     var serverArguments: [String] {
         ["video_codec=h264", "audio=false", "max_size=\(maxSize)", "max_fps=\(maxFPS)",
          "video_bit_rate=\(bitRate * 1_000_000)", "control=\(control)", "stay_awake=\(stayAwake)",
-         "show_touches=false", "clipboard_autosync=false", "tunnel_forward=true", "log_level=info"]
+         "show_touches=false", "clipboard_autosync=\(control)", "tunnel_forward=true", "log_level=info"]
     }
 }
 

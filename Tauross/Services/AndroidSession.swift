@@ -63,10 +63,12 @@ final class AndroidSession: @unchecked Sendable {
     private let completion = DispatchGroup()
     private var log = ""
     private let surface: VideoSurface
+    private let onClipboard: @Sendable (String) -> Void
     private let onFailure: @Sendable (String) -> Void
 
-    init(surface: VideoSurface, onFailure: @escaping @Sendable (String) -> Void) {
-        self.surface = surface; self.onFailure = onFailure
+    init(surface: VideoSurface, onClipboard: @escaping @Sendable (String) -> Void = { _ in },
+         onFailure: @escaping @Sendable (String) -> Void) {
+        self.surface = surface; self.onClipboard = onClipboard; self.onFailure = onFailure
     }
     private var isStopped: Bool { lock.lock(); defer { lock.unlock() }; return stopped }
     private func check() throws { if isStopped { throw CancellationError() } }
@@ -105,6 +107,23 @@ final class AndroidSession: @unchecked Sendable {
         if stopped { lock.unlock(); socket.cancel(); throw CancellationError() }
         if isControl { control = socket } else { video = socket }
         lock.unlock()
+    }
+
+    private func receiveControl(from socket: StreamSocket) {
+        completion.enter()
+        DispatchQueue(label: "com.tauross.clipboard", qos: .userInitiated).async { [self] in
+            defer { completion.leave() }
+            do {
+                while !isStopped {
+                    let message = try ScrcpyDeviceMessage.read {
+                        try socket.read($0, idleAllowed: true, cancelled: { self.isStopped })
+                    }
+                    if case .clipboard(let text) = message, !isStopped { onClipboard(text) }
+                }
+            } catch {
+                if !isStopped { onFailure(error.localizedDescription); stop() }
+            }
+        }
     }
 
     private func stream(device: MirrorDevice, options: StreamOptions) throws {
@@ -154,7 +173,11 @@ final class AndroidSession: @unchecked Sendable {
             }
         }
         guard let connected else { throw TaurossError.message("Unable to start scrcpy-server on the device.") }
-        if options.control { try install(StreamSocket(port: number), isControl: true) }
+        if options.control {
+            let socket = try StreamSocket(port: number)
+            try install(socket, isControl: true)
+            receiveControl(from: socket)
+        }
         _ = try connected.read(64) // Device name.
         let header = try connected.read(12)
         guard header.unsignedBE(at: 0, count: 4) == 0x68323634 else { throw TaurossError.message("The device did not provide an H.264 stream.") }

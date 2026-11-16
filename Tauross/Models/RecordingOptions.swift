@@ -60,9 +60,32 @@ struct RecordingOptions: Codable, Equatable {
 }
 
 enum CaptureStorage {
-    static var root: URL { FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".tauross", isDirectory: true) }
+    private static let folderKey = "capture.folder"
 
-    static func destination(kind: String, platform: DevicePlatform, extension suffix: String) throws -> URL {
+    static var root: URL { resolvedRoot() }
+
+    static func resolvedRoot(defaults: UserDefaults = .standard,
+                             home: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
+        if let path = defaults.string(forKey: folderKey) {
+            return URL(fileURLWithPath: path, isDirectory: true)
+        }
+        let legacy = home.appendingPathComponent(".tauross", isDirectory: true)
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: legacy.path, isDirectory: &isDirectory), isDirectory.boolValue {
+            return legacy
+        }
+        return home.appendingPathComponent("tauross", isDirectory: true)
+    }
+
+    static func setRoot(_ url: URL, defaults: UserDefaults = .standard) throws {
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        guard FileManager.default.isWritableFile(atPath: url.path) else {
+            throw TaurossError.message("The selected capture folder is not writable. Choose another folder.")
+        }
+        defaults.set(url.path, forKey: folderKey)
+    }
+
+    static func destination(kind: String, platform: DevicePlatform, extension suffix: String, root: URL = Self.root) throws -> URL {
         let directory = root.appendingPathComponent(kind, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let stamp = Date().formatted(.iso8601).replacingOccurrences(of: ":", with: "-")

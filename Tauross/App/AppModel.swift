@@ -19,6 +19,7 @@ final class AppModel: ObservableObject {
     @Published var error: String?
     @Published var notice: String?
     @Published private(set) var lastCapture: URL?
+    @Published private(set) var captureFolder = CaptureStorage.root
     @Published var diagnostics = ""
     private var monitoring: Task<Void, Never>?
     private var pendingConnections: Set<String> = []
@@ -168,6 +169,22 @@ final class AppModel: ObservableObject {
         do {
             try FileManager.default.createDirectory(at: CaptureStorage.root, withIntermediateDirectories: true)
             NSWorkspace.shared.open(CaptureStorage.root)
+        } catch { self.error = error.localizedDescription }
+    }
+
+    func chooseCaptureFolder() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose Capture Folder"
+        panel.prompt = "Choose"
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = true
+        panel.directoryURL = captureFolder
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try CaptureStorage.setRoot(url)
+            captureFolder = CaptureStorage.root
         } catch { self.error = error.localizedDescription }
     }
 }

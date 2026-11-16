@@ -15,6 +15,7 @@ Tauross is a lightweight macOS app for mirroring Android devices and viewing USB
 
 - **Android over USB or Wi-Fi** — connect authorized devices, pair using Android 11+ Wireless debugging, or use a running Android emulator.
 - **Android control** — click, drag, scroll, and type from your Mac. Back, Home, and Recent Apps are also available in the Device menu.
+- **Android clipboard** — text copied on Android automatically becomes available to paste on your Mac. Use **⌘V** in the mirror to paste Mac clipboard text on Android, including Unicode; **⌘C**, **⌘X**, and **⌘A** copy, cut, and select all in the Android app. Requires input control.
 - **Stream settings** — choose resolution, frame rate, and video bitrate; enable input control and stay-awake.
 - **iPhone and iPad over USB** — view-only capture using macOS CoreMediaIO and AVFoundation. Physical-device validation is still pending.
 - **Separate mirror window** — resize by dragging its edges, keep the correct video aspect ratio, and use the standard macOS window controls.
@@ -22,7 +23,7 @@ Tauross is a lightweight macOS app for mirroring Android devices and viewing USB
 - **PNG screenshots** — save the current device screen with **⌘S**.
 - **Mirror tools** — a companion toolbar sits outside the mirror window, with Android power, volume, navigation, rotation, and notifications; both platforms have screenshot and recording buttons.
 - **Video recording** — save H.264 or HEVC video in MP4 or MOV, with separate resolution, frame rate, and bitrate settings for Android and iOS. Android shares one capture between mirroring and recording, at the higher quality requested by either output.
-- **Local capture folder** — screenshots and recordings are automatically saved in `~/.tauross/screenshots` and `~/.tauross/recordings`. Open the folder from Settings or the Device menu.
+- **Local capture folder** — screenshots and recordings are saved under `~/tauross/screenshots` and `~/tauross/recordings` by default. Existing `~/.tauross` folders remain in use after updating. Choose another folder in **Settings → Saved Captures → Change Capture Folder…**, or open it from Settings or the Device menu. The selection is remembered; existing captures and recordings already in progress keep their original location.
 - **In-app updates** — check for updates from the Tauross menu, with signed update feeds and downloads powered by Sparkle.
 - **Everything included** — ADB, scrcpy-server, and Sparkle are bundled in the app. No Homebrew or separate command-line tools are needed.
 
@@ -55,6 +56,7 @@ Connect with a data-capable USB cable, unlock the device, and choose **Trust Thi
 | Mirror a device | Select it, then click **Mirror** |
 | Android touch / swipe / scroll | Click / drag / scroll in the mirror window |
 | Android Back | Esc or right-click |
+| Android copy / cut / paste / select all | **⌘C** / **⌘X** / **⌘V** / **⌘A** in the mirror window |
 | Stream settings | **⌘,** |
 | Refresh devices | **⌘R** |
 | Save screenshot | **⌘S** |
@@ -76,7 +78,7 @@ Recording settings are saved separately for each platform and apply to the next 
 - One mirror window per device; there is no fixed app limit on the number of devices mirrored simultaneously.
 - iOS is USB and view-only; its capture implementation still needs testing with a physical iPhone/iPad.
 - Audio forwarding, recording audio, and iOS Wi-Fi are not included.
-- Android text input has limitations with complex Unicode and input methods.
+- Android keyboard text input has limitations with complex Unicode and input methods; use clipboard paste for Unicode text. Clipboard sharing supports text, not images or files. Paste and injected copy/cut require Android 7 or later and an app that supports those actions. Mac clipboard text is sent when you paste in the mirror; Android clipboard changes sync automatically while mirroring.
 - USB debugging / Wireless debugging authorization is required by Android itself.
 
 ## Build from source

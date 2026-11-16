@@ -13,10 +13,11 @@ struct VideoView: NSViewRepresentable {
     }
 }
 
-final class VideoNSView: NSView {
+final class VideoNSView: NSView, NSUserInterfaceValidations {
     private let display = AVSampleBufferDisplayLayer()
     private var surface: VideoSurface
     private let onInput: (Data) -> Void
+    private let pasteboard: NSPasteboard
     private var timer: Timer?
     private var sequence = -1
     private var format: CMVideoFormatDescription?
@@ -26,8 +27,8 @@ final class VideoNSView: NSView {
     override var acceptsFirstResponder: Bool { true }
     override var isFlipped: Bool { true }
 
-    init(surface: VideoSurface, onInput: @escaping (Data) -> Void) {
-        self.surface = surface; self.onInput = onInput
+    init(surface: VideoSurface, pasteboard: NSPasteboard = .general, onInput: @escaping (Data) -> Void) {
+        self.surface = surface; self.pasteboard = pasteboard; self.onInput = onInput
         super.init(frame: .zero)
         wantsLayer = true
         display.videoGravity = .resizeAspect
@@ -45,6 +46,7 @@ final class VideoNSView: NSView {
         super.viewDidMoveToWindow()
         timer?.invalidate(); timer = nil
         if window != nil {
+            window?.makeFirstResponder(self)
             let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] _ in self?.render() }
             RunLoop.main.add(timer, forMode: .common); self.timer = timer
         }
@@ -95,9 +97,49 @@ final class VideoNSView: NSView {
         let scale = event.hasPreciseScrollingDeltas ? 0.04 : 1.0
         onInput(ScrcpyControl.scroll(x: Int(p.x), y: Int(p.y), width: Int(imageSize.width), height: Int(imageSize.height), dx: event.scrollingDeltaX * scale, dy: event.scrollingDeltaY * scale))
     }
-    private func key(_ code: UInt32) {
+    private func key(_ code: UInt32, metaState: UInt32 = 0) {
         guard controlEnabled else { return }
-        onInput(ScrcpyControl.key(code, down: true)); onInput(ScrcpyControl.key(code, down: false))
+        onInput(ScrcpyControl.key(code, down: true, metaState: metaState))
+        onInput(ScrcpyControl.key(code, down: false, metaState: metaState))
+    }
+
+    @objc func copy(_ sender: Any?) {
+        guard controlEnabled else { return }
+        onInput(ScrcpyControl.getClipboard(copyKey: 1))
+    }
+    @objc func cut(_ sender: Any?) {
+        guard controlEnabled else { return }
+        onInput(ScrcpyControl.getClipboard(copyKey: 2))
+    }
+    @objc func paste(_ sender: Any?) {
+        guard controlEnabled, let text = pasteboard.string(forType: .string) else { return }
+        // One server command sets the clipboard before injecting PASTE, avoiding a race.
+        onInput(ScrcpyControl.setClipboard(text, paste: true))
+    }
+    override func selectAll(_ sender: Any?) { key(29, metaState: 0x1000) } // Android Ctrl+A
+
+    func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        guard controlEnabled else { return false }
+        switch item.action {
+        case #selector(paste(_:)): return pasteboard.string(forType: .string) != nil
+        case #selector(copy(_:)), #selector(cut(_:)), #selector(selectAll(_:)): return true
+        default: return false
+        }
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard controlEnabled, window?.firstResponder === self,
+              event.modifierFlags.intersection([.command, .shift, .option, .control]) == .command else {
+            return super.performKeyEquivalent(with: event)
+        }
+        switch event.charactersIgnoringModifiers?.lowercased() {
+        case "c": copy(nil)
+        case "x": cut(nil)
+        case "v": paste(nil)
+        case "a": selectAll(nil)
+        default: return super.performKeyEquivalent(with: event)
+        }
+        return true
     }
     override func keyDown(with event: NSEvent) {
         guard controlEnabled else { super.keyDown(with: event); return }

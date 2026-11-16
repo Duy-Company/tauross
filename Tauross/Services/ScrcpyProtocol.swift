@@ -12,11 +12,24 @@ extension Data {
 
 /// Wire format pinned to scrcpy-server 3.3.4. See Resources/Licenses and README.
 enum ScrcpyControl {
-    static func key(_ code: UInt32, down: Bool) -> Data {
+    static func key(_ code: UInt32, down: Bool, metaState: UInt32 = 0) -> Data {
         var data = Data([0, down ? 0 : 1])
         data.appendBE(code)
         data.appendBE(UInt32(0))
-        data.appendBE(UInt32(0))
+        data.appendBE(metaState)
+        return data
+    }
+    static func getClipboard(copyKey: UInt8 = 0) -> Data { Data([8, copyKey]) }
+
+    static func setClipboard(_ text: String, paste: Bool, sequence: UInt64 = 0) -> Data {
+        // scrcpy limits the whole control packet to 256 KiB. Keep UTF-8 intact.
+        var bytes = Data(text.utf8.prefix((1 << 18) - 14))
+        while String(data: bytes, encoding: .utf8) == nil { bytes.removeLast() }
+        var data = Data([9])
+        data.appendBE(sequence)
+        data.append(paste ? 1 : 0)
+        data.appendBE(UInt32(bytes.count))
+        data.append(bytes)
         return data
     }
     static func text(_ text: String) -> Data {
@@ -46,6 +59,32 @@ enum ScrcpyControl {
         data.appendBE(Int16(max(-32767, min(32767, dy / 16 * 32767))))
         data.appendBE(UInt32(0))
         return data
+    }
+}
+
+enum ScrcpyDeviceMessage: Equatable {
+    case clipboard(String)
+    case clipboardAcknowledged(UInt64)
+    case uhidOutput(id: UInt16, data: Data)
+
+    /// The reader supplies exactly the requested bytes, including across fragmented TCP reads.
+    static func read(using read: (Int) throws -> Data) throws -> Self {
+        switch try read(1)[0] {
+        case 0:
+            let size = Int(try read(4).unsignedBE(at: 0, count: 4))
+            guard size <= (1 << 18) - 5 else { throw TaurossError.message("Invalid Android clipboard packet size.") }
+            let bytes = try read(size)
+            guard let text = String(data: bytes, encoding: .utf8) else { throw TaurossError.message("Invalid Android clipboard text.") }
+            return .clipboard(text)
+        case 1:
+            return .clipboardAcknowledged(try read(8).unsignedBE(at: 0, count: 8))
+        case 2:
+            let header = try read(4)
+            let id = UInt16(header.unsignedBE(at: 0, count: 2))
+            return .uhidOutput(id: id, data: try read(Int(header.unsignedBE(at: 2, count: 2))))
+        default:
+            throw TaurossError.message("Unknown Android control response.")
+        }
     }
 }
 

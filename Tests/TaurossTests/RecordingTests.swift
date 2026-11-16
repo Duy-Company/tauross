@@ -4,6 +4,38 @@ import CoreImage
 @testable import Tauross
 
 final class RecordingTests: XCTestCase {
+    func testCaptureFolderDefaultPreservesLegacyAndRemembersUserSelection() throws {
+        let home = FileManager.default.temporaryDirectory.appendingPathComponent("tauross-storage-\(UUID())", isDirectory: true)
+        let suite = "tauross-storage-\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer {
+            defaults.removePersistentDomain(forName: suite)
+            try? FileManager.default.removeItem(at: home)
+        }
+        let fresh = home.appendingPathComponent("tauross", isDirectory: true)
+        XCTAssertEqual(CaptureStorage.resolvedRoot(defaults: defaults, home: home), fresh)
+
+        let legacy = home.appendingPathComponent(".tauross", isDirectory: true)
+        try FileManager.default.createDirectory(at: legacy, withIntermediateDirectories: true)
+        let oldFile = legacy.appendingPathComponent("existing.mp4")
+        try Data([1, 2, 3]).write(to: oldFile)
+        XCTAssertEqual(CaptureStorage.resolvedRoot(defaults: defaults, home: home), legacy)
+
+        let custom = home.appendingPathComponent("My Captures", isDirectory: true)
+        try CaptureStorage.setRoot(custom, defaults: defaults)
+        let reloaded = try XCTUnwrap(UserDefaults(suiteName: suite))
+        XCTAssertEqual(CaptureStorage.resolvedRoot(defaults: reloaded, home: home), custom)
+        XCTAssertEqual(try Data(contentsOf: oldFile), Data([1, 2, 3]))
+        for (kind, suffix) in [("screenshots", "png"), ("recordings", "mp4")] {
+            let destination = try CaptureStorage.destination(kind: kind, platform: .android, extension: suffix, root: custom)
+            XCTAssertEqual(destination.deletingLastPathComponent(), custom.appendingPathComponent(kind, isDirectory: true))
+            XCTAssertTrue(FileManager.default.fileExists(atPath: destination.deletingLastPathComponent().path))
+        }
+        // A file cannot be selected as a folder, and a failed choice must preserve the last selection.
+        XCTAssertThrowsError(try CaptureStorage.setRoot(oldFile, defaults: defaults))
+        XCTAssertEqual(CaptureStorage.resolvedRoot(defaults: defaults, home: home), custom)
+    }
+
     func testRecordingResolutionPreservesAspectAndNeverUpscales() {
         var options = RecordingOptions()
         options.maxSize = 1280

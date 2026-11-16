@@ -68,12 +68,18 @@ struct SettingsView: View {
                          + " For smaller files, choose HEVC with a lower bitrate. Recordings contain video only.")
                 }
                 Section("Saved Captures") {
-                    LabeledContent("Folder", value: "~/.tauross")
+                    LabeledContent("Folder") {
+                        Text((model.captureFolder.path as NSString).abbreviatingWithTildeInPath)
+                            .lineLimit(2).truncationMode(.middle).textSelection(.enabled)
+                    }
+                    Button("Change Capture Folder…") { model.chooseCaptureFolder() }
                     Button("Open Capture Folder…") { model.showCaptures() }
                     if let url = model.lastCapture {
                         Button("Show Last Capture in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
                     }
                     Text("Screenshots: PNG · Recordings: MP4 or MOV").font(.caption).foregroundStyle(Moss.muted)
+                    Text("Folder changes apply to new captures. Existing files stay in their current folder.")
+                        .font(.caption).foregroundStyle(Moss.muted)
                 }
             }.formStyle(.grouped).scrollContentBackground(.hidden)
             if let session = model.commandSession, session.device.platform == .android, platform == .android {
